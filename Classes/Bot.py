@@ -4,6 +4,8 @@ from typing import TYPE_CHECKING
 
 from discord import Attachment, Bot, TextChannel
 
+from Utils.Database import Database
+
 if TYPE_CHECKING:
     pass
 ################################################################################
@@ -24,7 +26,7 @@ class MoxieBot(Bot):
         super().__init__(*args, **kwargs)
 
         self._image_dump: TextChannel = None  # type: ignore
-        # self.database: Database = Database(self)
+        self.database: Database = Database(self)
 
 ################################################################################
     async def load_all(self) -> None:
@@ -33,10 +35,10 @@ class MoxieBot(Bot):
         self._image_dump = await self.fetch_channel(991902526188302427)
 
         print("Asserting database structure...")
-        # self.database.assert_structure()
+        self.database.assert_structure()
         
         print("Loading data from database...")
-        # data = self.database.load_all()
+        data = self.database.load_all()
         
         # Load stuff here
 
