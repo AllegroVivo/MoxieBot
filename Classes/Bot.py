@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, List, Optional
 
-from discord import Attachment, Bot, TextChannel
+from discord import Attachment, Bot, TextChannel, User, Interaction
 
+from Classes.Patron import Patron
 from Utils.Database import Database
 
 if TYPE_CHECKING:
@@ -18,6 +19,7 @@ class MoxieBot(Bot):
     __slots__ = (
         "_image_dump",
         "database",
+        "_patrons",
     )
 
 ################################################################################
@@ -27,6 +29,8 @@ class MoxieBot(Bot):
 
         self._image_dump: TextChannel = None  # type: ignore
         self.database: Database = Database(self)
+        
+        self._patrons: List[Patron] = []
 
 ################################################################################
     async def load_all(self) -> None:
@@ -51,5 +55,34 @@ class MoxieBot(Bot):
         post = await self._image_dump.send(file=file)   # type: ignore
 
         return post.attachments[0].url
+
+################################################################################
+    def get_patron_by_id(self, user_id: int) -> Optional[Patron]:
+        
+        for p in self._patrons:
+            if p.user_id == user_id:
+                return p
+    
+################################################################################    
+    def get_patron(self, user: User) -> Patron:
+
+        patron = self.get_patron_by_id(user.id)
+        if patron is None:
+            patron = Patron(self, user)
+            self._patrons.append(patron)
+            
+        return patron
+        
+################################################################################
+    async def stamp_member(self, interaction: Interaction, user: User) -> None:
+        
+        patron = self.get_patron(user)            
+        await patron.stamp(interaction)
+
+################################################################################
+    async def view_stamps(self, interaction: Interaction) -> None:
+        
+        patron = self.get_patron(interaction.user)   
+        await patron.send_current_stamps(interaction)
 
 ################################################################################

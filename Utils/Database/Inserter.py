@@ -18,15 +18,20 @@ __all__ = ("DatabaseInserter",)
 class DatabaseInserter(DBWorkerBranch):
     """A utility class for inserting new records into the database."""
 
-    pass
-    # def insert_punch_card(self, patron_id: int) -> str:
-    #     """Insert a new punch card record into the database."""
-    # 
-    #     new_id = self.generate_id()
-    #     
-    #     with self
+    def insert_punch_card(self, patron_id: int) -> str:
+        """Insert a new punch card record into the database."""
+
+        new_id = self.generate_id()
+
+        with self.database as db:
+            db.execute(
+                "INSERT INTO punchcards (_id, user_id) VALUES (%s, %s);",
+                (new_id, patron_id),
+            )
+            
+        return new_id
             
 ################################################################################
-    
+    punch_card = insert_punch_card
 ################################################################################
     

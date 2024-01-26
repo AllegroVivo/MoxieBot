@@ -18,7 +18,17 @@ class DatabaseLoader(DBWorkerBranch):
         """Performs all sub-loaders and returns a dictionary of their results."""
 
         return {
-           
+           "punch_cards": self.punch_cards(),
         }
 
+################################################################################
+    def punch_cards(self) -> Tuple[Tuple[str, int, int], ...]:
+        """Returns a dictionary of punch cards."""
+
+        with self.database as db:
+            db.execute(
+                "SELECT * FROM punchcards;"
+            )
+            return db.fetchall()
+        
 ################################################################################

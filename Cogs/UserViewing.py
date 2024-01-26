@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from Classes import MoxieBot
 ################################################################################
-class Admin(Cog):
+class UserViewing(Cog):
     
     def __init__(self, bot: "MoxieBot"):
 
@@ -13,32 +13,23 @@ class Admin(Cog):
     
 ################################################################################    
     
-    admin = SlashCommandGroup(
-        name="admin",
-        description="Admin commands for MoxieBot"
+    viewing = SlashCommandGroup(
+        name="view",
+        description="Commands for viewing stamp status."
     )
     
 ################################################################################
-    @admin.command(
-        name="stamp",
-        description="Stamp a patron's punch card",
+    @viewing.command(
+        name="stamps",
+        description="View your current punch card stamps",
     )    
-    async def stamp_card(
-        self,
-        ctx: ApplicationContext,
-        user: Option(
-            SlashCommandOptionType.user,
-            name="member",
-            description="The member to punch (Ouch!)",
-            required=True,
-        )
-    ) -> None:
+    async def view_stamps(self, ctx: ApplicationContext) -> None:
         
-        await self.bot.stamp_member(ctx.interaction, user)
+        await self.bot.view_stamps(ctx.interaction)
  
 ################################################################################
 def setup(bot: "MoxieBot") -> None:
 
-    bot.add_cog(Admin(bot))
+    bot.add_cog(UserViewing(bot))
     
 ################################################################################
