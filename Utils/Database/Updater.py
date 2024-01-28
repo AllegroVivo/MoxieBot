@@ -18,8 +18,9 @@ class DatabaseUpdater(DBWorkerBranch):
         
         with self.database as db:
             db.execute(
-                "UPDATE punchcards SET punches = %s WHERE _id = %s;",
-                (pc.punches, pc.id)
+                "UPDATE punch_cards SET punches = %s, redeemed = %s "
+                "WHERE _id = %s;",
+                (pc.punches, pc.redeem_date, pc.id)
             )
             
 ################################################################################

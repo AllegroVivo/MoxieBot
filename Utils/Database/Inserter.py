@@ -25,7 +25,7 @@ class DatabaseInserter(DBWorkerBranch):
 
         with self.database as db:
             db.execute(
-                "INSERT INTO punchcards (_id, user_id) VALUES (%s, %s);",
+                "INSERT INTO punch_cards (_id, user_id) VALUES (%s, %s);",
                 (new_id, patron_id),
             )
             

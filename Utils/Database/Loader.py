@@ -26,9 +26,7 @@ class DatabaseLoader(DBWorkerBranch):
         """Returns a dictionary of punch cards."""
 
         with self.database as db:
-            db.execute(
-                "SELECT * FROM punchcards;"
-            )
+            db.execute("SELECT * FROM punch_cards;")
             return db.fetchall()
         
 ################################################################################

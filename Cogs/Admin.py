@@ -31,11 +31,35 @@ class Admin(Cog):
             name="member",
             description="The member to punch (Ouch!)",
             required=True,
+        ),
+        quantity: Option(
+            SlashCommandOptionType.integer,
+            name="quantity",
+            description="The number of punches to give",
+            default=1
         )
     ) -> None:
         
-        await self.bot.stamp_member(ctx.interaction, user)
+        await self.bot.stamp_member(ctx.interaction, user, quantity)
  
+################################################################################
+    @admin.command(
+        name="view",
+        description="View a patron's punch stats",
+    )
+    async def view_stats(
+        self,
+        ctx: ApplicationContext,
+        user: Option(
+            SlashCommandOptionType.user,
+            name="member",
+            description="The member to view",
+            required=True,
+        )
+    ) -> None:
+        
+        await self.bot.view_user_stats(ctx.interaction, user)
+        
 ################################################################################
 def setup(bot: "MoxieBot") -> None:
 

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, List, Optional
 
-from discord import Attachment, Bot, TextChannel, User, Interaction
+from discord import Attachment, Bot, TextChannel, User, Interaction, NotFound
 
 from Classes.Patron import Patron
 from Utils.Database import Database
@@ -45,7 +45,24 @@ class MoxieBot(Bot):
         data = self.database.load_all()
         
         # Load stuff here
-
+        punch_card_records = {}
+        for record in data["punch_cards"]:
+            try:
+                punch_card_records[record[1]].append(record)
+            except KeyError:
+                punch_card_records[record[1]] = [record]
+                
+        for patron in punch_card_records:
+            user = self.get_user(patron)
+            if user is None:
+                try:
+                    user = await self.fetch_user(patron)
+                except NotFound:
+                    continue
+        
+            p = Patron.load(self, user, punch_card_records[patron])
+            self._patrons.append(p)
+            
         print("Done!")
 
 ################################################################################
@@ -57,16 +74,14 @@ class MoxieBot(Bot):
         return post.attachments[0].url
 
 ################################################################################
-    def get_patron_by_id(self, user_id: int) -> Optional[Patron]:
+    def get_patron(self, user: User) -> Patron:
+        
+        patron = None
         
         for p in self._patrons:
-            if p.user_id == user_id:
-                return p
-    
-################################################################################    
-    def get_patron(self, user: User) -> Patron:
+            if p.user_id == user.id:
+                patron = p
 
-        patron = self.get_patron_by_id(user.id)
         if patron is None:
             patron = Patron(self, user)
             self._patrons.append(patron)
@@ -74,15 +89,21 @@ class MoxieBot(Bot):
         return patron
         
 ################################################################################
-    async def stamp_member(self, interaction: Interaction, user: User) -> None:
+    async def stamp_member(self, interaction: Interaction, user: User, qty: int) -> None:
         
         patron = self.get_patron(user)            
-        await patron.stamp(interaction)
+        await patron.stamp(interaction, qty)
 
 ################################################################################
     async def view_stamps(self, interaction: Interaction) -> None:
         
         patron = self.get_patron(interaction.user)   
         await patron.send_current_stamps(interaction)
+
+################################################################################
+    async def view_user_stats(self, interaction: Interaction, user: User) -> None:
+        
+        patron = self.get_patron(user)
+        await patron.view_stats(interaction)
 
 ################################################################################

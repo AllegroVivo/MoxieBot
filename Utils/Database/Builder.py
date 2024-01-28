@@ -20,10 +20,11 @@ class DatabaseBuilder(DBWorkerBranch):
         
         with self.database as db:   
             db.execute(
-                "CREATE TABLE IF NOT EXISTS punchcards ("
+                "CREATE TABLE IF NOT EXISTS punch_cards ("
                 "_id TEXT PRIMARY KEY,"
                 "user_id BIGINT NOT NULL,"
-                "punches INTEGER DEFAULT 1"
+                "punches INTEGER DEFAULT 1,"
+                "redeemed TIMESTAMP DEFAULT NULL"
                 ");"
             )
             
