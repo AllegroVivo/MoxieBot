@@ -111,7 +111,7 @@ class PunchCard:
         self._punches += qty
         self.update()
         
-        await interaction.respond(f"{self._parent.user.mention} has arrived on the scene!")
+        await interaction.respond(f"Thanks for visiting, {self._parent.user.mention}! Here's your stamp!")
         await self.send_current_stamps(interaction)
 
 ################################################################################
