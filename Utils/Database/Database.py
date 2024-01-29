@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Any, Dict
 
 import psycopg2
 from dotenv import load_dotenv
-from psycopg2 import OperationalError
+from psycopg2 import OperationalError, InterfaceError
 
 from .Worker import DatabaseWorker
 
@@ -77,7 +77,7 @@ class Database:
 
         try:
             self.__connection.commit()
-        except OperationalError:
+        except InterfaceError:
             self._connect()
             self._commit()
 
@@ -86,7 +86,7 @@ class Database:
 
         try:
             self._cursor = self.__connection.cursor()
-        except OperationalError:
+        except InterfaceError:
             self._connect()
             self._get_cursor()
 
@@ -95,7 +95,7 @@ class Database:
 
         try:
             self._cursor.close()
-        except OperationalError:
+        except InterfaceError:
             pass
 
 ################################################################################
