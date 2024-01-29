@@ -124,7 +124,7 @@ class PunchCard:
 
         if self._parent.coins > 0:
             await interaction.channel.send(
-                f"You also have **`~~ {self._parent.coins} ~~`** coins to /redeem!"
+                f"You also have **`~~ {self._parent.coins} ~~`** coins to </redeem:1201066545997156363>!"
             )
 
 ################################################################################
