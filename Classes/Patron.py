@@ -6,7 +6,8 @@ from typing import TYPE_CHECKING, List, Type, TypeVar, Tuple, Optional
 from Assets import BotImages
 from .PunchCard import PunchCard
 
-from Utils import Utilities as U
+from UI import ConfirmCancelView
+from Utils import Utilities as U, NoCoinsAvailableError
 
 if TYPE_CHECKING:
     from Classes import MoxieBot
@@ -65,6 +66,23 @@ class Patron:
         return self._user.id
     
 ################################################################################
+    @property
+    def cards(self) -> List[PunchCard]:
+        
+        return self._cards
+    
+################################################################################
+    @property
+    def coins(self) -> int:
+        
+        return len(
+            [
+                card for card in self._cards 
+                if card.is_complete and card.redeem_date is None
+            ]
+        )
+    
+################################################################################
     def get_current_card(self) -> Optional[PunchCard]:
 
         for card in self._cards:
@@ -72,12 +90,20 @@ class Patron:
                 return card
     
 ################################################################################
+    def get_unredeemed_card(self) -> Optional[PunchCard]:
+        
+        for card in self._cards:
+            if card.is_complete and card.redeem_date is None:
+                return card
+            
+################################################################################
     async def stamp(self, interaction: Interaction, qty: int) -> None:
         
         card = self.get_current_card()
         if card is None:
             card = self.create_card()
             
+        qty = min(5 - card.punches, qty)
         await card.punch(interaction, qty)
             
 ################################################################################
@@ -97,7 +123,7 @@ class Patron:
         fields = [
             EmbedField(
                 name="Current Punches",
-                value=f"**`{self.get_current_card().punches}`**",
+                value=f"**`{self.get_current_card().punches if self.get_current_card() is not None else 0}`**",
                 inline=True
             ),
             EmbedField(
@@ -110,11 +136,16 @@ class Patron:
                 value=f"**`{len(completed_cards)}`**",
                 inline=True
             ),
+            # EmbedField(
+            #     name="Redemption History",
+            #     value="`Coming Soon`:tm:",
+            #     inline=False
+            # )
         ]
         
         return U.make_embed(
-            title=f"{self._user.name}'s Punch Cards",
-            description=U.draw_line(extra=25),
+            title=f"__{self._user.display_name}'s__ Punch Cards",
+            description=U.draw_line(extra=32),
             thumbnail_url=(
                 card.current_image if (card := self.get_current_card()) is not None 
                 else BotImages.CardBlank
@@ -126,5 +157,32 @@ class Patron:
     async def view_stats(self, interaction: Interaction) -> None:
         
         await interaction.respond(embed=self.status())
+
+################################################################################
+    async def redeem_coin(self, interaction: Interaction) -> None:
+        
+        if self.coins == 0:
+            error = NoCoinsAvailableError()
+            await interaction.respond(embed=error, ephemeral=True)
+            return
+        
+        confirm = U.make_embed(
+            title="Redeem Coin",
+            description=(
+                f"Are you sure you want to redeem a coin?\n"
+                f"You currently have **`{self.coins}`** available."
+            ),
+            thumbnail_url=BotImages.CatCoin,
+        )
+        view = ConfirmCancelView(interaction.user)
+        
+        await interaction.respond(embed=confirm, view=view)
+        await view.wait()
+        
+        if not view.complete or view.value is False:
+            return
+        
+        card = self.get_unredeemed_card()
+        await card.redeem(interaction)
 
 ################################################################################

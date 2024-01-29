@@ -4,7 +4,9 @@ from datetime import datetime
 from discord import Interaction, User
 from typing import TYPE_CHECKING, List, Optional, Type, TypeVar
 
-from Assets import BotImages
+from Assets import BotImages, BotEmojis
+from .GachaponMachine import GachaponMachine
+from Utils import Utilities as U
 
 if TYPE_CHECKING:
     from Classes import Patron, MoxieBot
@@ -62,7 +64,7 @@ class PunchCard:
     @property
     def is_complete(self) -> bool:
         
-        return self._punches >= 6
+        return self._punches >= 5
     
 ################################################################################
     @property
@@ -75,7 +77,14 @@ class PunchCard:
     def redeem_date(self) -> Optional[datetime]:
         
         return self._redeem_date 
-    
+
+################################################################################    
+    @redeem_date.setter
+    def redeem_date(self, value: Optional[datetime]) -> None:
+        
+        self._redeem_date = value
+        self.update()
+        
 ################################################################################
     @property
     def current_image(self) -> str:
@@ -90,7 +99,7 @@ class PunchCard:
             case 4:
                 return BotImages.Card4Stamp
             case 5:
-                return BotImages.Card5Stamp
+                return BotImages.CardFull
             case 6:
                 return BotImages.CardFull
             case _:
@@ -113,9 +122,35 @@ class PunchCard:
             f"You currently have **`~~ {self.punches} ~~`** punches on your card!"
         )
 
+        if self._parent.coins > 0:
+            await interaction.channel.send(
+                f"You also have **`~~ {self._parent.coins} ~~`** coins to /redeem!"
+            )
+
 ################################################################################
     def update(self) -> None:
         
         self.bot.database.update.punch_card(self)
 
 ################################################################################
+    async def redeem(self, interaction: Interaction) -> None:
+        
+        machine = GachaponMachine()
+        prize = await machine.play(interaction)
+        self.redeem_date = datetime.now()
+        
+        await interaction.channel.send(U.draw_line(extra=22))
+        
+        header = (
+            f"{BotEmojis.Gem}{BotEmojis.Gem} __**CONGRATULATIONS!**__ "
+            f"{BotEmojis.Gem}{BotEmojis.Gem}"
+        )
+        await interaction.channel.send(header)
+        await interaction.channel.send(prize.image)
+        await interaction.channel.send(
+            f"**{interaction.user.display_name} won a __`{prize.proper_name}`__ capsule!**\n"
+            "A Cat's Staff will come by with your prize shortly."
+        )
+    
+################################################################################
+    

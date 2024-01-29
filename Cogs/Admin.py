@@ -1,6 +1,8 @@
 from discord import Cog, SlashCommandGroup, ApplicationContext, Option, SlashCommandOptionType
 from typing import TYPE_CHECKING
 
+from Classes.GachaponMachine import GachaponMachine
+
 if TYPE_CHECKING:
     from Classes import MoxieBot
 ################################################################################
@@ -36,7 +38,8 @@ class Admin(Cog):
             SlashCommandOptionType.integer,
             name="quantity",
             description="The number of punches to give",
-            default=1
+            default=1,
+            max_value=5
         )
     ) -> None:
         
@@ -59,6 +62,16 @@ class Admin(Cog):
     ) -> None:
         
         await self.bot.view_user_stats(ctx.interaction, user)
+        
+################################################################################
+    @admin.command(
+        name="capsules",
+        description="Capsule test",
+    )
+    async def capsules(self, ctx: ApplicationContext) -> None:
+        
+        machine = GachaponMachine()
+        await machine.play(ctx.interaction)
         
 ################################################################################
 def setup(bot: "MoxieBot") -> None:
