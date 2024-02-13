@@ -21,7 +21,8 @@ class UserViewing(Cog):
         description="View your current punch card stamps",
     )    
     async def view_stamps(self, ctx: ApplicationContext) -> None:
-        
+
+        await ctx.defer()
         await self.bot.view_user_stats(ctx.interaction)
  
 ################################################################################
@@ -30,7 +31,8 @@ class UserViewing(Cog):
         description="Redeem a completed Cat's Coin!"
     )
     async def redeem(self, ctx: ApplicationContext) -> None:
-        
+
+        await ctx.defer()
         await self.bot.redeem_coin(ctx.interaction)
         
 ################################################################################

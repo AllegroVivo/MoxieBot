@@ -43,6 +43,7 @@ class Admin(Cog):
         )
     ) -> None:
         
+        await ctx.defer()
         await self.bot.stamp_member(ctx.interaction, user, quantity)
  
 ################################################################################
@@ -61,17 +62,17 @@ class Admin(Cog):
         )
     ) -> None:
         
+        await ctx.defer()
         await self.bot.view_user_stats(ctx.interaction, user)
         
 ################################################################################
     @admin.command(
-        name="capsules",
-        description="Capsule test",
+        name="test",
+        description="Test command for Allegro only",
     )
-    async def capsules(self, ctx: ApplicationContext) -> None:
+    async def testing(self, ctx: ApplicationContext) -> None:
         
-        machine = GachaponMachine()
-        await machine.play(ctx.interaction)
+        raise Exception("This is a test exception")
         
 ################################################################################
 def setup(bot: "MoxieBot") -> None:
