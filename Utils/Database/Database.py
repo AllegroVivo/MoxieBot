@@ -26,7 +26,7 @@ class Database:
 
     __slots__ = (
         "_state",
-        "__connection",
+        "_connection",
         "_cursor",
         "_worker",
     )
@@ -36,68 +36,47 @@ class Database:
 
         self._state: PartyBusBot = bot
 
-        self.__connection: connection = None  # type: ignore
-        self._connect()
-
+        self._connection: connection = None  # type: ignore
         self._cursor: cursor = None  # type: ignore
         self._worker: DatabaseWorker = DatabaseWorker(bot)
 
 ################################################################################
-    def _connect(self) -> None:
-        
-        print("Connecting to Database...")
-        
-        self.__connection = None
-        self._cursor = None
-
-        load_dotenv()
-        self.__connection = psycopg2.connect(
-            os.getenv("DATABASE_URL"), sslmode="require"
-        )
-
-        print("Connected successfully!")
-
-################################################################################
     def __enter__(self) -> cursor:
-
-        if not self.__connection:
+    
+        load_dotenv()
+    
+        self._connect()
+        try:
+            self._cursor.execute("SELECT 1")
+        except OperationalError:
+            self._reset_connection()
             self._connect()
-
-        self._get_cursor()
+    
         return self._cursor
 
 ################################################################################
     def __exit__(self, exc_type, exc_value, exc_traceback) -> None:
-
-        self._commit()
-        self._close_cursor()
-
-################################################################################
-    def _commit(self) -> None:
-
-        try:
-            self.__connection.commit()
-        except InterfaceError:
-            self._connect()
-            self._commit()
+    
+        self._reset_connection()
 
 ################################################################################
-    def _get_cursor(self) -> None:
-
-        try:
-            self._cursor = self.__connection.cursor()
-        except InterfaceError:
-            self._connect()
-            self._get_cursor()
-
-################################################################################
-    def _close_cursor(self) -> None:
-
+    def _reset_connection(self) -> None:
+    
         try:
             self._cursor.close()
-        except (InterfaceError, AttributeError):
+            self._connection.close()
+        except OperationalError:
             pass
+        finally:
+            self._connection = None
+            self._cursor = None
 
+################################################################################        
+    def _connect(self) -> None:
+
+        self._connection = psycopg2.connect(os.getenv("DATABASE_URL"), sslmode="require")
+        self._cursor = self._connection.cursor()
+        
 ################################################################################
     @property
     def connection(self) -> connection:
