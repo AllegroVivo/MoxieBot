@@ -72,7 +72,8 @@ class Admin(Cog):
     )
     async def testing(self, ctx: ApplicationContext) -> None:
         
-        raise Exception("This is a test exception")
+        pass
+        # raise Exception("This is a test exception")
         
 ################################################################################
 def setup(bot: "MoxieBot") -> None:
