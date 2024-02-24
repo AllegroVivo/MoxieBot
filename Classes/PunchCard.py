@@ -111,7 +111,7 @@ class PunchCard:
         self._punches += qty
         self.update()
         
-        await interaction.respond(f"Thanks for visiting, {self._parent.user.mention}! Here's your stamp!")
+        await interaction.respond(f"Thanks for visiting, {self._parent.user.display_name}! Here's your stamp!")
         await self.send_current_stamps(interaction)
 
 ################################################################################
@@ -124,6 +124,7 @@ class PunchCard:
 
         if self._parent.coins > 0:
             await interaction.channel.send(
+                f"{self._parent.user.mention}\n"
                 f"You also have **`~~ {self._parent.coins} ~~`** coins to </redeem:1201661594678067281>!"
             )
 
