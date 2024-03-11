@@ -30,7 +30,15 @@ class DatabaseInserter(DBWorkerBranch):
             )
             
         return new_id
-            
+    
+################################################################################        
+    def insert_patron(self, user_id: int) -> None:
+        
+        self.execute(
+            "INSERT INTO punches (user_id) VALUES (%s) ON CONFLICT DO NOTHING;",
+            (user_id,)
+        )
+    
 ################################################################################
     punch_card = insert_punch_card
 ################################################################################

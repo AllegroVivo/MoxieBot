@@ -19,6 +19,8 @@ class Internal(Cog):
         print("Loading internals...")
         await self.bot.load_all()
         
+        print("MoxieBot Online!")
+        
 ################################################################################
 def setup(bot: MoxieBot) -> None:
 

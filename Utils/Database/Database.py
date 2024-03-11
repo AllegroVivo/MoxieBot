@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import os
-from typing import TYPE_CHECKING, Any, Dict
+from typing import TYPE_CHECKING, Any, Dict, Tuple
 
 import psycopg2
 from dotenv import load_dotenv
@@ -40,56 +40,67 @@ class Database:
         self._cursor: cursor = None  # type: ignore
         self._worker: DatabaseWorker = DatabaseWorker(bot)
 
-################################################################################
-    def __enter__(self) -> cursor:
-    
+################################################################################        
+    def _connect(self) -> None:
+
         load_dotenv()
-    
-        self._connect()
-        try:
-            self._cursor.execute("SELECT 1")
-        except OperationalError:
-            self._reset_connection()
-            self._connect()
-    
-        return self._cursor
+
+        self._reset_connection()
+
+        self._connection = psycopg2.connect(os.getenv("HEROKU_POSTGRESQL_ONYX_URL"), sslmode="require")
+        self._cursor = self._connection.cursor()
+
+        print("Connecting to database")
 
 ################################################################################
-    def __exit__(self, exc_type, exc_value, exc_traceback) -> None:
-    
-        self._reset_connection()
+    def _assert_structure(self) -> None:
+
+        self._worker.build_all()
+
+################################################################################
+    def _load_all(self) -> Dict[str, Any]:
+
+        return self._worker.load_all()
 
 ################################################################################
     def _reset_connection(self) -> None:
-    
+
         try:
             self._cursor.close()
             self._connection.close()
-        except OperationalError:
+        except (OperationalError, AttributeError):
             pass
         finally:
             self._connection = None
             self._cursor = None
 
-################################################################################        
-    def _connect(self) -> None:
-
-        self._connection = psycopg2.connect(os.getenv("DATABASE_URL"), sslmode="require")
-        self._cursor = self._connection.cursor()
-        
 ################################################################################
-    @property
-    def connection(self) -> connection:
+    def execute(self, query: str, *fmt_args: Any) -> None:
 
-        return self.__connection
+        try:
+            self._cursor.execute("SELECT 1")
+        except (OperationalError, AttributeError):
+            self._connect()
+
+        load_dotenv()
+
+        try:
+            self._cursor.execute(query, fmt_args)
+            self._connection.commit()
+            if os.getenv("DEBUG") == "True":
+                print(f"Database execution succeeded on query: '{query}', Args: {fmt_args}")
+        except:
+            print(f"Database execution failed on query: '{query}', Args: {fmt_args}")
 
 ################################################################################
-    @property
-    def cursor(self) -> None:
+    def fetchall(self) -> Tuple[Tuple[Any, ...]]:
 
-        raise Exception(
-            "Cursor is not a property of Database. Use a context manager block instead."
-        )
+        return self._cursor.fetchall()
+
+################################################################################
+    def fetchone(self) -> Tuple[Any, ...]:
+
+        return self._cursor.fetchone()
 
 ################################################################################
     @property
@@ -109,15 +120,5 @@ class Database:
     def delete(self) -> DatabaseDeleter:
 
         return self._worker._deleter
-
-################################################################################
-    def assert_structure(self) -> None:
-
-        self._worker.build_all()
-
-################################################################################
-    def load_all(self) -> Dict[str, Any]:
-
-        return self._worker.load_all()
 
 ################################################################################

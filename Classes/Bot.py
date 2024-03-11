@@ -1,11 +1,14 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, List, Optional
+import sys
+
+from typing import TYPE_CHECKING, List, Optional, Any
 
 from discord import Attachment, Bot, TextChannel, User, Interaction, NotFound, EmbedField
 
 from Assets import BotImages
-from Classes.Patron import Patron
+from .Patron import Patron
+from .StaffManager import StaffManager
 from Utils.Database import Database
 from Utils import Utilities as U
 
@@ -22,7 +25,9 @@ class MoxieBot(Bot):
         "_image_dump",
         "database",
         "_patrons",
-        "_weights"
+        "_weights",
+        "_staff_mgr",
+        "_error_channel",
     )
 
 ################################################################################
@@ -31,41 +36,57 @@ class MoxieBot(Bot):
         super().__init__(*args, **kwargs)
 
         self._image_dump: TextChannel = None  # type: ignore
+        self._error_channel: TextChannel = None  # type: ignore
+        
         self.database: Database = Database(self)
         
         self._patrons: List[Patron] = []
         self._weights: List[int] = [45, 35, 15, 5]
+        
+        self._staff_mgr: StaffManager = StaffManager(self)
 
+################################################################################
+    async def on_error(self, event_method: str, *args: Any, **kwargs: Any) -> None:
+        
+        # exc = sys.exc_info()
+        # error_type = exc[0]
+        # error = exc[1]
+        # traceback = exc[2]
+        # 
+        # embed = U.make_embed(
+        #     title=f"`{error_type.__name__}` occurred!",
+        #     description=f"```{error}```",
+        # )
+        # 
+        # print(embed)
+        # await self._error_channel.send(embed=embed)
+        pass
+        
+################################################################################
+    @property
+    def staff_manager(self) -> StaffManager:
+        
+        return self._staff_mgr
+    
 ################################################################################
     async def load_all(self) -> None:
 
         print("Fetching image dump...")
         self._image_dump = await self.fetch_channel(991902526188302427)
+        self._error_channel = await self.fetch_channel(974493350919045190)
 
         print("Asserting database structure...")
-        self.database.assert_structure()
+        self.database._assert_structure()
         
         print("Loading data from database...")
-        data = self.database.load_all()
-        
-        # Load stuff here
-        punch_card_records = {}
-        for record in data["punch_cards"]:
-            try:
-                punch_card_records[record[1]].append(record)
-            except KeyError:
-                punch_card_records[record[1]] = [record]
+        data = self.database._load_all()
                 
-        for patron in punch_card_records:
-            user = self.get_user(patron)
-            if user is None:
-                try:
-                    user = await self.fetch_user(patron)
-                except NotFound:
-                    continue
-        
-            p = Patron.load(self, user, punch_card_records[patron])
-            self._patrons.append(p)
+        for patron in data["punches"]:
+            try:
+                user = await self.fetch_user(patron[0])
+            except NotFound:
+                continue
+            self._patrons.append(Patron(self, user, patron[1], patron[2], patron[3]))
             
         print("Done!")
 
@@ -88,6 +109,7 @@ class MoxieBot(Bot):
 
         if patron is None:
             patron = Patron(self, user)
+            self.database.insert.insert_patron(user.id)
             self._patrons.append(patron)
             
         return patron
@@ -108,7 +130,7 @@ class MoxieBot(Bot):
     async def redeem_coin(self, interaction: Interaction) -> None:
         
         patron = self.get_patron(interaction.user)
-        await patron.redeem_coin(interaction)
+        await patron.redeem(interaction)
 
 ################################################################################
     @staticmethod
@@ -119,7 +141,7 @@ class MoxieBot(Bot):
             description=(
                 "Each visit earns you 1 stamp on your card!\n\n"
                 
-                "**When you reach 6 stamps you’ll earn ~A Cat’s Coin~!**\n"
+                "**When you reach 5 stamps you’ll earn ~A Cat’s Coin~!**\n"
                 f"{U.draw_line(extra=33)}\n"
                 "__Available Commands:__"
             ),

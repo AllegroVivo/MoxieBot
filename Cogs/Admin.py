@@ -39,11 +39,10 @@ class Admin(Cog):
             name="quantity",
             description="The number of punches to give",
             default=1,
-            max_value=5
+            max_value=99
         )
     ) -> None:
         
-        await ctx.defer()
         await self.bot.stamp_member(ctx.interaction, user, quantity)
  
 ################################################################################
@@ -62,18 +61,7 @@ class Admin(Cog):
         )
     ) -> None:
         
-        await ctx.defer()
         await self.bot.view_user_stats(ctx.interaction, user)
-        
-################################################################################
-    @admin.command(
-        name="test",
-        description="Test command for Allegro only",
-    )
-    async def testing(self, ctx: ApplicationContext) -> None:
-        
-        pass
-        # raise Exception("This is a test exception")
         
 ################################################################################
 def setup(bot: "MoxieBot") -> None:

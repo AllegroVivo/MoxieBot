@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from uuid import uuid4
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Tuple, Any
 
 if TYPE_CHECKING:
     from Classes.Bot import PartyBusBot
@@ -42,4 +42,20 @@ class DBWorkerBranch:
         
         return uuid4().hex
     
+################################################################################
+    def execute(self, query: str, *args) -> None:
+        """Execute a query on the database."""
+
+        self.database.execute(query, *args)
+            
+################################################################################
+    def fetchall(self) -> Tuple[Tuple[Any, ...]]:
+
+        return self.database.fetchall()
+
+################################################################################
+    def fetchone(self) -> Tuple[Any, ...]:
+
+        return self.database.fetchone()
+
 ################################################################################

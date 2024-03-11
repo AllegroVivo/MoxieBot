@@ -1,13 +1,15 @@
 from __future__ import annotations
 
+from datetime import datetime
+from typing import TYPE_CHECKING, List, TypeVar
+
 from discord import Interaction, User, Embed, EmbedField
-from typing import TYPE_CHECKING, List, Type, TypeVar, Tuple, Optional
 
-from Assets import BotImages
-from .PunchCard import PunchCard
-
+from Assets import BotImages, BotEmojis
 from UI import ConfirmCancelView
 from Utils import Utilities as U, NoCoinsAvailableError
+from .GachaponMachine import GachaponMachine
+from .PunchCard import PunchCard
 
 if TYPE_CHECKING:
     from Classes import MoxieBot
@@ -24,30 +26,31 @@ class Patron:
         "_state",
         "_user",
         "_cards",
+        "_stamps",
+        "_coins",
+        "_redemptions",
     )
     
 ################################################################################
-    def __init__(self, state: MoxieBot, user: User) -> None:
+    def __init__(
+        self,
+        state: MoxieBot,
+        user: User,
+        stamps: int = 0,
+        coins: int = 0,
+        redemptions: int = 0
+    ) -> None:
         
         self._state: MoxieBot = state
         self._user: User = user
         
         self._cards: List[PunchCard] = []
+        
+        self._stamps: int = stamps
+        self._coins: int = coins
+        self._redemptions: int = redemptions
     
-################################################################################
-    @classmethod
-    def load(cls: Type[P], state: MoxieBot, user: User, data: List[Tuple[str, int, int]]) -> P:
-        
-        self: P = cls.__new__(cls)
-        
-        self._state = state
-        self._user = user
-        
-        self._cards = [PunchCard(self, card[0], card[2], card[3]) for card in data]
-        
-        return self
-        
-################################################################################    
+################################################################################  
     @property
     def bot(self) -> MoxieBot:
         
@@ -67,73 +70,91 @@ class Patron:
     
 ################################################################################
     @property
-    def cards(self) -> List[PunchCard]:
+    def stamps(self) -> int:
         
-        return self._cards
+        return self._stamps
     
 ################################################################################
     @property
     def coins(self) -> int:
         
-        return len(
-            [
-                card for card in self._cards 
-                if card.is_complete and card.redeem_date is None
-            ]
-        )
+        return self._coins
     
 ################################################################################
-    def get_current_card(self) -> Optional[PunchCard]:
-
-        for card in self._cards:
-            if not card.is_complete:
-                return card
-    
-################################################################################
-    def get_unredeemed_card(self) -> Optional[PunchCard]:
+    @property
+    def redemptions(self) -> int:
         
-        for card in self._cards:
-            if card.is_complete and card.redeem_date is None:
-                return card
-            
+        return self._redemptions
+    
+################################################################################
+    @property
+    def current_image(self) -> str:
+
+        image = BotImages.CardBlank
+        if self.stamps > 0:
+            if self.stamps == 1:
+                image = BotImages.Card1Stamp
+            elif self.stamps == 2:
+                image = BotImages.Card2Stamp
+            elif self.stamps == 3:
+                image = BotImages.Card3Stamp
+            elif self.stamps == 4:
+                image = BotImages.Card4Stamp
+            else:
+                image = BotImages.CardFull
+                
+        return image
+         
 ################################################################################
     async def stamp(self, interaction: Interaction, qty: int) -> None:
         
-        card = self.get_current_card()
-        if card is None:
-            card = self.create_card()
-            
-        qty = min(5 - card.punches, qty)
-        await card.punch(interaction, qty)
-            
+        self._stamps += qty
+        
+        while self._stamps >= 5:
+            self._coins += 1
+            self._stamps -= 5
+
+        self.update()
+
+        await interaction.respond(f"Thanks for visiting, {self.user.display_name}! Here's your stamp!")
+        await self.send_current_stamps(interaction)
+        
+################################################################################    
+    def update(self) -> None:
+        
+        self.bot.database.update.punches(self)
+        
 ################################################################################
-    def create_card(self) -> PunchCard:
-        
-        card = PunchCard.new(self)
-        self._cards.append(card)
-        
-        return card
+    async def send_current_stamps(self, interaction: Interaction) -> None:
+
+        await interaction.channel.send(self.current_image)
+        await interaction.channel.send(
+            f"You currently have **`~~ {self.stamps} ~~`** punches on your card!"
+        )
+
+        if self.coins > 0:
+            await interaction.channel.send(
+                f"{self.user.mention}\n"
+                f"You also have **`~~ {self.coins} ~~`** coins to </redeem:1201661594678067281>!"
+            )
 
 ################################################################################
     def status(self) -> Embed:
         
-        completed_cards = [card for card in self._cards if card.is_complete]
-        unredeemed_cards = [card for card in completed_cards if card.redeem_date is None]
-        
         fields = [
             EmbedField(
                 name="Current Punches",
-                value=f"**`{self.get_current_card().punches if self.get_current_card() is not None else 0}`**",
+                value=f"**`{self.stamps}`**",
                 inline=True
             ),
             EmbedField(
                 name="Available Coins",
-                value=f"**`{len(unredeemed_cards)}`**",
+                value=f"**`{self.coins}`**",
                 inline=True
             ),
             EmbedField(
                 name="Completed Cards",
-                value=f"**`{len(completed_cards)}`**",
+                value=f"**`{self.redemptions}`**",
                 inline=True
             ),
             # EmbedField(
@@ -146,10 +167,7 @@ class Patron:
         return U.make_embed(
             title=f"__{self._user.display_name}'s__ Punch Cards",
             description=U.draw_line(extra=32),
-            thumbnail_url=(
-                card.current_image if (card := self.get_current_card()) is not None 
-                else BotImages.CardBlank
-            ),
+            thumbnail_url=self.current_image,
             fields=fields
         )
     
@@ -159,13 +177,13 @@ class Patron:
         await interaction.respond(embed=self.status())
 
 ################################################################################
-    async def redeem_coin(self, interaction: Interaction) -> None:
-        
+    async def redeem(self, interaction: Interaction) -> None:
+
         if self.coins == 0:
             error = NoCoinsAvailableError()
             await interaction.respond(embed=error, ephemeral=True)
             return
-        
+
         confirm = U.make_embed(
             title="Redeem Coin",
             description=(
@@ -175,14 +193,32 @@ class Patron:
             thumbnail_url=BotImages.CatCoin,
         )
         view = ConfirmCancelView(interaction.user)
-        
+
         await interaction.respond(embed=confirm, view=view)
         await view.wait()
-        
+
         if not view.complete or view.value is False:
             return
         
-        card = self.get_unredeemed_card()
-        await card.redeem(interaction)
+        self._coins -= 1
+        self._redemptions += 1
+        self.update()
+
+        machine = GachaponMachine()
+        prize = await machine.play(interaction)
+
+        await interaction.channel.send(U.draw_line(extra=22))
+
+        header = (
+            f"{BotEmojis.Gem}{BotEmojis.Gem} __**CONGRATULATIONS!**__ "
+            f"{BotEmojis.Gem}{BotEmojis.Gem}"
+        )
+        await interaction.channel.send(header)
+        await interaction.channel.send(prize.image)
+        await interaction.channel.send(
+            f"**{interaction.user.display_name} won a __`{prize.proper_name}`__ capsule!**\n"
+            "A Cat's Staff will come by with your prize shortly."
+        )
 
 ################################################################################
+    

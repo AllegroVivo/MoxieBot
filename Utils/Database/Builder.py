@@ -11,21 +11,33 @@ class DatabaseBuilder(DBWorkerBranch):
 
     def build_all(self) -> None:
 
-        self.build_punch_card_table()
+        # self._build_punch_card_table()
+        self._build_punches_table()
         
         print("Database lookin' good!")
         
 ################################################################################
-    def build_punch_card_table(self) -> None:
+    def _build_punch_card_table(self) -> None:
         
-        with self.database as db:   
-            db.execute(
-                "CREATE TABLE IF NOT EXISTS punch_cards ("
-                "_id TEXT PRIMARY KEY,"
-                "user_id BIGINT NOT NULL,"
-                "punches INTEGER DEFAULT 1,"
-                "redeemed TIMESTAMP DEFAULT NULL"
-                ");"
-            )
-            
+        self.execute(
+            "CREATE TABLE IF NOT EXISTS punch_cards ("
+            "_id TEXT PRIMARY KEY,"
+            "user_id BIGINT NOT NULL,"
+            "punches INTEGER DEFAULT 1,"
+            "redeemed TIMESTAMP DEFAULT NULL"
+            ");"
+        )
+        
+################################################################################   
+    def _build_punches_table(self) -> None:
+        
+        self.execute(
+            "CREATE TABLE IF NOT EXISTS punches ("
+            "user_id BIGINT PRIMARY KEY,"
+            "punches INTEGER,"
+            "coins INTEGER,"
+            "redemptions INTEGER"
+            ");"
+        )
+        
 ################################################################################

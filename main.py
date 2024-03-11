@@ -8,9 +8,15 @@ from dotenv import load_dotenv
 from Classes.Bot import MoxieBot
 ################################################################################
 
+if os.getenv("DEBUG") == "True":
+    debug_guilds = [303742308874977280, 955933227372122173]
+else:
+    debug_guilds = None
+
 bot = MoxieBot(
     description="Toot toot, bitches!",
-    intents=Intents.default()
+    intents=Intents.default(),
+    debug_guilds=debug_guilds
 )
 
 ################################################################################
@@ -23,6 +29,11 @@ for filename in os.listdir("Cogs"):
 
 load_dotenv()
 
-bot.run(os.getenv("DISCORD_TOKEN"))
+if os.getenv("DEBUG") == "True":
+    token = os.getenv("DEBUG_TOKEN")
+else:
+    token = os.getenv("DISCORD_TOKEN")
+
+bot.run(token)
 
 ################################################################################

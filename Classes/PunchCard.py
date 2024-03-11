@@ -106,15 +106,6 @@ class PunchCard:
                 return BotImages.CardBlank 
     
 ################################################################################
-    async def punch(self, interaction: Interaction, qty: int) -> None:
-        
-        self._punches += qty
-        self.update()
-        
-        await interaction.respond(f"Thanks for visiting, {self._parent.user.display_name}! Here's your stamp!")
-        await self.send_current_stamps(interaction)
-
-################################################################################
     async def send_current_stamps(self, interaction: Interaction) -> None:
 
         await interaction.channel.send(self.current_image)
